@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Aplicativo de Alerta de Enchentes</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <style>
+        #mapa { height: 400px; } 
+    </style>
+</head>
+<body>
+    <h1>Aplicativo de Alerta de Enchentes</h1>
+
+    {% if email_usuario %}
+        <p>Logado como: {{ email_usuario }}</p>
+        <a href="{{ url_for('logout') }}">Sair</a> 
+        <a href="{{ url_for('adicionar_alerta') }}">Adicionar Alerta</a>
+        <a href="{{ url_for('adicionar_contato_de_emergencia') }}">Adicionar Contato de Emergência</a> 
+    {% else %}
+        <a href="{{ url_for('login') }}">Entrar</a>
+        <a href="{{ url_for('cadastro') }}">Cadastrar</a>
+    {% endif %}
+
+    <div id="mapa"></div> 
+
+    {% if alertas %}
+        <h2>Alertas</h2>
+        <ul>
+        {% for alerta in alertas %}
+            <li>
+                <b>Local:</b> {{ alerta[2] }}<br>
+                <b>Tipo de Perigo:</b> {{ alerta[3] }}<br>
+                <b>Nível de Alerta:</b> {{ alerta[4] }}<br>
+                <b>Horário:</b> {{ alerta[5] }}<br>
+                {% if alerta[6] %}
+                    <img src="{{ alerta[6] }}" alt="Imagem/Vídeo do Alerta" width="200"> 
+                {% endif %}
+                {% if email_usuario == 'seu_email_de_admin@example.com' %} 
+                    <a href="{{ url_for('apagar_alerta', id_alerta=alerta[0]) }}">Apagar</a> 
+                {% endif %}
+            </li>
+        {% endfor %}
+        </ul>
+    {% endif %}
+
+    {% if contatos_de_emergencia %}
+        <h2>Contatos de Emergência</h2>
+        <ul>
+        {% for contato in contatos_de_emergencia %}
+            <li>
+                <b>Nome:</b> {{ contato[1] }}<br>
+                <b>Número de Telefone:</b> {{ contato[2] }}<br>
+                {% if contato[3] %} 
+                    <b>Email:</b> {{ contato[3] }}<br>
+                {% endif %}
+            </li>
+        {% endfor %}
+        </ul>
+    {% endif %}
+
+    <script>
+        var mapa = L.map('mapa').setView([-30.0346, -51.2177], 13); 
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: 'Map data &copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors',
+            maxZoom: 18,
+        }).addTo(mapa);
+
+        fetch('/obter_alertas')
+            .then(response => response.json())
+            .then(alertas => {
+                alertas.forEach(alerta => {
+                    if (alerta.latitude && alerta.longitude) {
+                        L.marker([alerta.latitude, alerta.longitude]).addTo(mapa)
+                            .bindPopup(`
+                                <b>${alerta.tipo_de_perigo}</b><br>
+                                <b>Local:</b> ${alerta.local}<br>
+                                <b>Nível de Alerta:</b> ${alerta.nivel_de_alerta}<br>
+                                <b>Horário:</b> ${alerta.horario}<br>
+                                ${alerta.url_foto_video ? `<img src="${alerta.url_foto_video}" alt="Imagem/Vídeo do Alerta" width="200">` : ''} 
+                            `); 
+                    }
+                });
+            });
+    </script>
+</body>
+</html>

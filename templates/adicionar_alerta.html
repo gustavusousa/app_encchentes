@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Adicionar Alerta</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <style>
+        #mapa { height: 300px; } 
+    </style>
+</head>
+<body>
+    <h1>Adicionar Alerta</h1>
+
+    <form method="POST" action="/adicionar_alerta" id="formulario-de-alerta">
+        <label for="local">Local:</label>
+        <input type="text" id="local" name="local" required><br><br>
+
+        <label for="tipo_de_perigo">Tipo de Perigo:</label>
+        <select id="tipo_de_perigo" name="tipo_de_perigo" required>
+            <option value="enchente">Enchente</option>
+            <option value="deslizamento">Deslizamento</option>
+            <option value="outro">Outro</option> 
+        </select><br><br>
+
+        <label for="nivel_de_alerta">Nível de Alerta:</label>
+        <select id="nivel_de_alerta" name="nivel_de_alerta" required>
+            <option value="baixo">Baixo</option>
+            <option value="medio">Médio</option>
+            <option value="alto">Alto</option>
+        </select><br><br>
+
+        <label for="url_foto_video">URL de Foto/Vídeo (opcional):</label>
+        <input type="text" id="url_foto_video" name="url_foto_video"><br><br>
+
+        <input type="file" id="upload-de-imagem" accept="image/*">
+        <button type="button" onclick="uploadImage()">Enviar Imagem</button>
+
+        <input type="hidden" id="latitude" name="latitude">
+        <input type="hidden" id="longitude" name="longitude">
+
+        <input type="submit" value="Enviar Alerta">
+    </form>
+
+    <div id="mapa"></div> 
+
+    <script>
+        var mapa = L.map('mapa').setView([-30.0346, -51.2177], 13); 
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: 'Map data &copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors',
+            maxZoom: 18,
+        }).addTo(mapa);
+
+        var marcador;
+
+        mapa.on('click', function(e) {
+            if (marcador) {
+                mapa.removeLayer(marcador); 
+            }
+
+            marcador = L.marker(e.latlng).addTo(mapa);
+
+            document.getElementById('latitude').value = e.latlng.lat;
+            document.getElementById('longitude').value = e.latlng.lng;
+        });
+
+        async function uploadImage() {
+            event.preventDefault();
+            const fileInput = document.getElementById('upload-de-imagem'); 
+            const file = fileInput.files[0];
+
+            if (!file) {
+                alert('Por favor, selecione uma imagem para enviar.');
+                return;
+            }
+
+            const nome_do_arquivo = file.name; 
+
+            const response = await fetch('/obter_url_de_upload', { 
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ nome_do_arquivo }) 
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                const uploadUrl = data.url;
+
+                await fetch(uploadUrl, {
+                    method: 'PUT',
+                    body: file
+                });
+
+                document.getElementById('url_foto_video').value = `https://projetoenchentes.s3.amazonaws.com/${nome_do_arquivo}`; 
+
+                alert('Imagem enviada com sucesso!');
+            } else {
+                const errorData = await response.json();
+                alert(`Erro ao enviar a imagem: ${errorData.erro}`); 
+            }
+        }
+    </script>
+</body>
+</html>
