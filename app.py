@@ -15,7 +15,7 @@ cliente_s3 = boto3.client('s3',
                         region_name=os.getenv('AWS_REGION'))
 
 app = Flask(__name__)
-app.secret_key = '51681ddd65'  # Substitua por uma string aleatória segura
+app.secret_key = '51681dddd5'  #string aleatória
 
 def criar_banco_de_dados():
     conn = sqlite3.connect('alertas.db') 
@@ -28,7 +28,7 @@ def criar_banco_de_dados():
             senha TEXT NOT NULL
         )
     ''')
-
+#latitude e longitude foram adicionadas para acomodar o leaflet, para marcar o ponto no mapa
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS alertas (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -64,7 +64,7 @@ def cadastro():
         email = request.form['email']
         senha = request.form['senha'] 
 
-        senha_criptografada = generate_password_hash(senha)
+        senha_criptografada = generate_password_hash(senha)  #necessita um sistema mais robusto
 
         conn = sqlite3.connect('alertas.db')
         cursor = conn.cursor()
@@ -73,7 +73,7 @@ def cadastro():
             conn.commit()
             return redirect(url_for('index')) 
         except sqlite3.IntegrityError:
-            return "Email já existe. Por favor, tente um diferente."
+            return "Email já existente. Por favor, tente um diferente."
         finally:
             conn.close()
 
@@ -90,7 +90,7 @@ def login():
         cursor.execute('SELECT * FROM usuarios WHERE email = ?', (email,))
         usuario = cursor.fetchone()
         conn.close()
-
+                                            #alteração necessária, pois não logava quando tentava criar uma conta sem o alertas.db
         if usuario and check_password_hash(usuario[2], senha):
             session['id_usuario'] = usuario[0]
             return redirect(url_for('index'))
@@ -180,7 +180,7 @@ def apagar_alerta(id_alerta):
     if 'id_usuario' not in session:
         return redirect(url_for('login'))
 
-    # Verifica se o usuário atual é o administrador
+    # Verifica se o usuário atual é o administrador. é necessário criar um sistema mais robusto que manter hardcoded.
     if session.get('email_usuario') != 'gustavusousa36@gmail.com':
         return "Você não está autorizado a apagar alertas."
 
